@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rechner App</title>
+    <script>
+        // Leitet sofort auf die mobile Version um, falls der Bildschirm zu schmal ist.
+        if (window.innerWidth < 850) {
+            window.location.href = 'mobile';
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 1. Backgrounds & Surfaces */
+            --color-bg-page: #f4f4f9;
+            --color-bg-card: #ffffff;
+            --color-bg-input: #f4f4f9;
+
+            /* 2. Text & Content */
+            --color-text-default: #1c1c1e;
+            --color-text-secondary: #6d6d72;
+
+            /* 3. Primary Action / Brand */
+            --color-action-brand: #6a11cb;
+            --color-action-gradient: linear-gradient(45deg, #6a11cb, #2575fc);
+
+            /* 4. State & Feedback Colors */
+            --color-state-success: #34c759;
+            --color-state-error-bg: #ffe0e0;
+            --color-state-error-text: #d92c2c;
+
+            /* 5. Utility & Borders */
+            --color-border-default: #e5e5ea;
+            --color-shadow-default: rgba(149, 157, 165, 0.1);
+        }
+
+        body.dark-mode {
+            /* 1. Backgrounds & Surfaces */
+            --color-bg-page: #121212;
+            --color-bg-card: #1e1e1e;
+            --color-bg-input: #2c2c2e;
+
+            /* 2. Text & Content */
+            --color-text-default: #f0f0f0;
+            --color-text-secondary: #8e8e93;
+
+            /* 3. Primary Action / Brand */
+            --color-action-brand: #8a3ffc;
+            --color-action-gradient: linear-gradient(45deg, #8a3ffc, #3b82f6);
+
+            /* 4. State & Feedback Colors */
+            --color-state-success: #30d158;
+            --color-state-error-bg: #4a2121;
+            --color-state-error-text: #ff6e6e;
+
+            /* 5. Utility & Borders */
+            --color-border-default: #38383a;
+            --color-shadow-default: rgba(0, 0, 0, 0.2);
+        }
+
+        /* Grund-Setup */
+        * { box-sizing: border-box; }
+        /* overflow:auto, falls der Inhalt größer als der Viewport ist */
+        html, body { height: 100%; overflow: auto; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            margin: 0;
+            background: var(--color-bg-page);
+            color: var(--color-text-default);
+            display: flex;
+            justify-content: center;
+            /* Oben ausrichten (flex-start) */
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 24px;
+            padding-top: 80px; /* Erhöht, um Platz für die Toggles zu schaffen */
+            transition: background 0.3s ease, color 0.3s ease;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            position: relative;
+        }
+
+        /* Haupt-Container der App */
+        .app-container {
+            background: var(--color-bg-card);
+            border-radius: 24px;
+            padding: 24px 32px;
+            box-shadow: 0 8px 32px var(--color-shadow-default);
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s ease, box-shadow 0.4s ease;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none; user-select: none;
+        }
+
+        /* --- Steuerelemente (Theme & Fullscreen) --- */
+
+        /* Basis-Styling für beide Toggles */
+        .control-switch {
+            position: absolute;
+            top: 24px;
+            z-index: 100;
+            cursor: pointer;
+            /* Flex für Text/Icon-Ausrichtung */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            /* Feste Höhe */
+            height: 40px; /* Leicht erhöht für bessere Ästhetik */
+
+            border-radius: 20px; /* Pillenform (Hälfte der Höhe) */
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-default);
+            box-shadow: 0 4px 12px var(--color-shadow-default);
+
+            /* Übergänge für Farbe und Breite */
+            transition: max-width 0.4s ease-in-out, padding 0.4s ease-in-out, background 0.3s ease, box-shadow 0.4s ease, transform 0.1s ease;
+            overflow: hidden;
+            padding: 8px;
+            max-width: 48px; /* Standard: Eingeklappte Pillenform (leicht breiter als hoch) */
+        }
+
+        .control-switch:active { transform: scale(0.96); }
+
+        .control-switch svg {
+            width: 24px;
+            height: 24px;
+            color: var(--color-text-secondary);
+            flex-shrink: 0;
+            transition: color 0.3s ease;
+        }
+
+        /* Text-Label innerhalb des Fullscreen-Toggles */
+        .control-switch .label-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-action-brand);
+            white-space: nowrap;
+            overflow: hidden;
+            /* Start-Zustand (eingefahren) */
+            max-width: 0;
+            padding-right: 0;
+            opacity: 0;
+            transition: all 0.4s ease-in-out;
+        }
+
+
+        /* Positionierung Theme Toggle (rechts außen) */
+        .theme-switch {
+            right: 24px;
+            /* Theme Toggle ist immer rund (50% der 40px Höhe) */
+            border-radius: 50%;
+            max-width: 40px;
+        }
+        #sun-icon { display: none; }
+        body.dark-mode #sun-icon { display: block; }
+        body.dark-mode #moon-icon { display: none; }
+
+        /* Positionierung Fullscreen Toggle (links daneben) */
+        .fullscreen-toggle {
+            right: 84px; /* 24px (Theme Switch Abstand) + 40px (Theme Switch Breite) + 20px (Margin/Padding) */
+        }
+        /* EXPANDED State (Beim Laden sichtbar) */
+        .fullscreen-toggle.is-expanded {
+            max-width: 150px; /* Breite für Text + Icon */
+            padding: 8px 16px; /* Mehr Padding horizontal */
+        }
+
+        .fullscreen-toggle.is-expanded .label-text {
+            max-width: 100px;
+            padding-right: 4px;
+            opacity: 1;
+        }
+
+        /* Aufmerksamkeit Puls Animation (Light Mode) */
+        @keyframes attention-pulse-light {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(106, 17, 203, 0.5); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(106, 17, 203, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(106, 17, 203, 0.5); }
+        }
+        /* Aufmerksamkeit Puls Animation (Dark Mode) */
+        @keyframes attention-pulse-dark {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(138, 63, 252, 0.5); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(138, 63, 252, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(138, 63, 252, 0.5); }
+        }
+
+        .fullscreen-toggle.attention-flash {
+            animation: attention-pulse-light 1.5s infinite ease-in-out;
+        }
+        body.dark-mode .fullscreen-toggle.attention-flash {
+            animation: attention-pulse-dark 1.5s infinite ease-in-out;
+        }
+
+        /* --- Tab-Navigation --- */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid var(--color-border-default);
+            margin-bottom: 20px;
+        }
+        .tab-nav button {
+            flex: 1;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: var(--color-text-secondary);
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px;
+        }
+        .tab-nav button.active {
+            color: var(--color-action-brand);
+            border-bottom-color: var(--color-action-brand);
+        }
+
+        /* Haupt-Inhaltsbereich jetzt flexibel */
+        main {
+            display: flex;
+            flex-grow: 1;
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .tab-content.active {
+            display: flex;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Allgemeine Button-Stile */
+        button { transition: transform 0.1s ease; }
+        button:active { transform: scale(0.96); }
+
+        /* --- Kassenzähler Stile --- */
+        .money-counter .total-display {
+            background: var(--color-action-gradient);
+            color: white;
+            font-size: 32px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border-radius: 16px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .money-counter .total-display small {
+            display: block; font-size: 15px; font-weight: 500; opacity: 0.8; margin-bottom: 4px;
+        }
+        .money-counter .grid-container {
+            display: flex; justify-content: space-between; gap: 24px;
+        }
+        .money-counter .column {
+            display: flex; flex-direction: column; gap: 12px; flex: 1;
+        }
+        .money-counter .vertical-separator {
+            width: 1px; background-color: var(--color-border-default);
+        }
+
+        /* Box-Element für horizontale Aufteilung [Clickable Label] | [Statische Summe] | [Controls] */
+        .money-counter .box {
+            display: flex;
+            align-items: stretch; /* Wichtig für gleiche Höhe */
+            border-radius: 12px;
+            font-size: 16px;
+            background: var(--color-bg-input);
+            border: 1px solid var(--color-border-default);
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* BOX 1: Clickable Label (Variable Breite, füllt den Rest) */
+        .money-counter .item-label-clickable {
+            flex-grow: 1;
+            flex-shrink: 1;
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-text-default);
+        }
+
+        /* BOX 2: Statische Summen-Anzeige (Variable Breite) */
+        .money-counter .item-sum-display {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 14px 18px;
+            flex-shrink: 0;
+            min-width: 110px;
+        }
+
+        .money-counter .item-sum-display .item-sum {
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        /* BOX 3: Gruppe für alle Steuerelemente (Fixed Width) */
+        .money-counter .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Basis Styling für alle Buttons */
+        .money-counter .controls-group button {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border-default);
+            cursor: pointer;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            color: var(--color-text-default);
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        /* Kreis-Styling für -1 / +1 Buttons */
+        .money-counter .control-btn-small {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+        }
+
+        /* Pillen-Styling für Quick-Add Buttons */
+        .money-counter .control-btn-wide {
+            padding: 4px 10px;
+            height: 38px;
+            border-radius: 19px;
+            min-width: 45px;
+        }
+
+        /* Input Styling */
+        .money-counter .controls-group input {
+            width: 60px;
+            font-size: 16px;
+            text-align: center;
+            border: 1px solid var(--color-border-default);
+            border-radius: 8px;
+            background: var(--color-bg-card);
+            color: var(--color-text-default);
+            padding: 8px 4px;
+            height: 38px;
+            /* Native Pfeile für type=number unterdrücken */
+            -moz-appearance: textfield;
+        }
+        /* Native Pfeile für type=number unterdrücken (Webkit) */
+        .money-counter .controls-group input::-webkit-outer-spin-button,
+        .money-counter .controls-group input::-webkit-inner-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+
+        /* --- Trinkgeldrechner Stile --- */
+        .tip-calculator .amount-section { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .tip-calculator .amount-label { font-size: 18px; font-weight: 600; color: var(--color-text-secondary); }
+        body.dark-mode .tip-calculator .amount-label { color: var(--color-text-default); }
+        .tip-calculator .amount-controls { display: flex; justify-content: center; align-items: center; gap: 16px; }
+        .tip-calculator .button-group { display: flex; gap: 10px; }
+        .tip-calculator .amount-controls button { background: var(--color-bg-input); border: 1px solid var(--color-border-default); font-size: 15px; font-weight: 600; color: var(--color-text-default); padding: 10px 16px; border-radius: 8px; min-width: 90px; text-align: center; }
+        .tip-calculator .amount-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tip-calculator #amount { font-size: 32px; font-weight: 700; width: 180px; padding: 12px; border-radius: 12px; border: 1px solid var(--color-border-default); background: var(--color-bg-input); color: var(--color-text-default); text-align: center; }
+        .tip-calculator .section-separator { height: 1px; width: 100%; background-color: var(--color-border-default); margin: 20px 0; }
+        .tip-calculator .persons { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 20px; margin-top: 12px; }
+        /* data-id zur Identifizierung für schnelles Update hinzugefügt */
+        .tip-calculator .person[data-id] { padding: 16px; border-radius: 12px; border: 1px solid var(--color-border-default); background: var(--color-bg-input); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .tip-calculator .person.extra { background: #e8f9e8; }
+        .dark-mode .tip-calculator .person.extra { background: var(--color-bg-input); }
+        .tip-calculator .person .name { font-size: 1.1em; font-weight: 600; }
+        .tip-calculator .person .share-container { display: flex; align-items: baseline; gap: 6px; margin: 4px 0; flex-wrap: wrap; justify-content: center; }
+        .tip-calculator .person .share-display { font-size: 1.6em; font-weight: 700; color: var(--color-text-default); margin: 0; }
+        .tip-calculator .person .extra-amount-text { font-size: 0.9em; font-weight: 600; color: var(--color-state-success); }
+        .tip-calculator .person .separator { width: 80%; height: 1px; background-color: var(--color-border-default); margin: 4px 0; }
+        .tip-calculator .extra-controls { display: flex; justify-content: space-around; width: 100%; padding: 0 8px; align-items: center; height: 36px; }
+        .tip-calculator .extra-controls button { background: transparent; border: none; font-size: 1em; font-weight: 600; padding: 8px; border-radius: 8px; cursor: pointer; transition: background-color 0.2s ease; }
+        /* Hover-Effekt für Touch-Optimierung entfernt */
+        .tip-calculator .extra-controls button.minus { color: var(--color-state-error-text); visibility: hidden; }
+        .tip-calculator .extra-controls button.plus { color: var(--color-state-success); }
+        .tip-calculator .extra-controls button.visible { visibility: visible; }
+        .tip-calculator .extra-controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .tip-calculator .count { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 150px; }
+        .tip-calculator .count .units { font-size: 20px; font-weight: 600; }
+        .tip-calculator .count button { background: var(--color-bg-card); border: 1px solid var(--color-border-default); width: 40px; height: 40px; border-radius: 50%; color: var(--color-text-default); cursor: pointer; display:inline-flex; align-items:center; justify-content:center; }
+        .tip-calculator .count button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .tip-calculator .count button svg { width: 20px; height: 20px; }
+        .tip-calculator .add-person { border: 2px dashed var(--color-border-default); border-radius: 12px; color: var(--color-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; font-size: 32px; font-weight: 300; }
+        /* Hover-Effekt entfernt */
+        .tip-calculator .add-person:active { border-color: var(--color-action-brand); color: var(--color-action-brand); background: var(--color-bg-input); }
+        .tip-calculator .results {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--color-border-default);
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .tip-calculator .result-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            /* Fixe Breite für Stabilität */
+            min-width: 100px;
+        }
+        .tip-calculator .result-item .label { font-size: 14px; color: var(--color-text-secondary); font-weight: 500; }
+        .tip-calculator .result-item .value { font-size: 22px; font-weight: 700; color: var(--color-text-default); }
+        .tip-calculator .result-item.rest-item .value { font-size: 26px; }
+        .tip-calculator .result-item.rest-item .value.is-zero { color: var(--color-state-success); }
+        .tip-calculator .result-item.rest-item .value.is-positive { color: var(--color-state-error-text); }
+
+        /* Footer & Reset Button */
+        footer {
+            /* NEU: Flexbox für Buttons */
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            text-align: center;
+            margin-top: auto;
+            padding-top: 20px;
+        }
+
+        footer button {
+            background: var(--color-state-error-bg);
+            color: var(--color-state-error-text);
+            border: 0;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* NEU: Speichern-Button (Aktionsfarbe) */
+        .save-btn {
+            background: var(--color-action-gradient);
+            color: white;
+        }
+
+        /* --- Modal für Standort-Auswahl --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            opacity: 0; /* Startet unsichtbar für Fade-In */
+            transition: opacity 0.3s ease;
+        }
+        /* Angepasster FadeIn für Modal */
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .modal-content {
+            background: var(--color-bg-card);
+            padding: 24px 32px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            animation: modalFadeIn 0.3s ease forwards;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            color: var(--color-text-default);
+        }
+        .modal-content p {
+            color: var(--color-text-secondary);
+            margin-bottom: 24px;
+        }
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .grid-btn {
+            background: var(--color-bg-input);
+            border: 1px solid var(--color-border-default);
+            padding: 16px 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-default);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-user-select: auto; user-select: auto; /* Textauswahl erlauben */
+        }
+        .grid-btn:active {
+            border-color: var(--color-action-brand);
+            color: var(--color-action-brand);
+            transform: scale(0.96);
+        }
+        .modal-close-btn {
+            /* Style wie der normale Footer-Button */
+            background: var(--color-bg-input);
+            color: var(--color-text-secondary);
+            border: 1px solid var(--color-border-default);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="tab-nav">
+            <button id="showCounterBtn" class="active">Kassenzähler</button>
+            <button id="showTipBtn">Trinkgeldrechner</button>
+        </nav>
+
+        <main>
+            <div id="moneyCounterView" class="tab-content active money-counter">
+                <div class="total-display">
+                    <small>Gesamtbetrag</small>
+                    <span id="total">0,00 €</span>
+                </div>
+                <div class="grid">
+                    </div>
+                <footer>
+                    <button id="resetCounter">Zurücksetzen</button>
+                    <!-- Button ist jetzt wieder aktiv -->
+                    <button id="saveCounter" class="save-btn">Speichern</button>
+                </footer>
+            </div>
+
+            <div id="tipCalculatorView" class="tab-content tip-calculator">
+                <div class="amount-section">
+                    <label class="amount-label" for="amount">Trinkgeld</label>
+                    <div class="amount-controls">
+                        <div class="button-group">
+                            <button data-delta="-0.1">-0,10 €</button>
+                            <button data-delta="-1">-1 €</button>
+                        </div>
+                        <input id="amount" type="text" inputmode="decimal" placeholder="0,00" />
+                        <div class="button-group">
+                            <button data-delta="1">+1 €</button>
+                            <button data-delta="0.1">+0,10 €</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-separator"></div>
+                <div class="persons" id="persons"></div>
+                <div class="results" id="results"></div>
+                <footer><button id="resetAll">Zurücksetzen</button></footer>
+            </div>
+        </main>
+    </div>
+
+    <div class="control-switch fullscreen-toggle" id="fullscreen-toggle">
+        <span class="label-text" id="fullscreen-label">Fullscreen</span>
+        <svg id="enter-fs-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9M20.25 20.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
+        </svg>
+        <svg id="exit-fs-icon" style="display:none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9L3.75 3.75M9 9V3.75M9 9H3.75M15 9L20.25 3.75M15 9H20.25M15 9V3.75M9 15L3.75 20.25M9 15V20.25M9 15H3.75M15 15L20.25 20.25M15 15H20.25M15 15V20.25" />
+        </svg>
+    </div>
+
+    <div class="control-switch theme-switch" id="theme-toggle">
+        <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
+        <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.95-4.243l-1.59-1.59M3 12h2.25m-.386-6.364l1.59 1.591M12 9a3 3 0 100 6 3 3 0 000-6z" /></svg>
+    </div>
+
+    <!-- Modal für Mitarbeiter-Auswahl -->
+    <div id="locationModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <h2>Mitarbeiter auswählen</h2>
+            <p>Wer macht die Abrechnung?</p>
+            <div class="modal-grid">
+                <button class="grid-btn">AM</button>
+                <button class="grid-btn">BK</button>
+                <button class="grid-btn">BR</button>
+                <button class="grid-btn">CA</button>
+                <button class="grid-btn">CG</button>
+                <button class="grid-btn">CM</button>
+                <button class="grid-btn">JE</button>
+                <button class="grid-btn">JS</button>
+                <button class="grid-btn">KS</button>
+                <button class="grid-btn">KT</button>
+                <button class="grid-btn">LB</button>
+                <button class="grid-btn">RG</button>
+                <button class="grid-btn">RS</button>
+                <button class="grid-btn">SD</button>
+                <button class="grid-btn">TA</button>
+                <button class="grid-btn">YR</button>
+            </div>
+            <button id="closeModal" class="modal-close-btn">Abbrechen</button>
+        </div>
+    </div>
+
+    <div id="branchModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <h2>Filiale festlegen</h2>
+            <p>Bitte wähle die Filiale für dieses Gerät aus. Diese Einstellung wird dauerhaft gespeichert.</p>
+            <div class="modal-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <button id="setBranchNBS10" class="grid-btn" style="font-size: 20px; padding: 24px;">NBS10</button>
+                <button id="setBranchNBS11" class="grid-btn" style="font-size: 20px; padding: 24px;">NBS11</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        /**
+         * Button-System für Klick und Halten (Hervorragende Touch-Optimierung)
+         */
+        function createHoldableButton(element, action) {
+            let state = { timeoutId: null, intervalId: null, isScrolling: false, startX: 0, startY: 0 };
+            const stopInteraction = (e, isTap) => {
+                clearTimeout(state.timeoutId); clearInterval(state.intervalId); state.intervalId = null;
+                window.removeEventListener('mouseup', onEnd); window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('touchend', onEnd); window.removeEventListener('touchmove', onMove); window.removeEventListener('touchcancel', onEnd);
+                if (isTap && !state.isScrolling) { action(); if (e.type === 'touchend') e.preventDefault(); }
+            };
+            const onEnd = (e) => stopInteraction(e, true);
+            const onMove = (e) => {
+                if (state.isScrolling) return;
+                const currentX = e.touches ? e.touches[0].clientX : e.clientX; const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+                if (Math.abs(currentX - state.startX) > 10 || Math.abs(currentY - state.startY) > 10) { state.isScrolling = true; stopInteraction(e, false); }
+            };
+            const onStart = (e) => {
+                if (e.button && e.button !== 0) return;
+                state.isScrolling = false; state.intervalId = null;
+                state.startX = e.touches ? e.touches[0].clientX : e.clientX; state.startY = e.touches ? e.touches[0].clientY : e.clientY;
+                window.addEventListener('mouseup', onEnd); window.addEventListener('mousemove', onMove);
+                window.addEventListener('touchend', onEnd); window.addEventListener('touchmove', onMove); window.addEventListener('touchcancel', onEnd);
+                state.timeoutId = setTimeout(() => { if (!state.isScrolling) { action(); state.intervalId = setInterval(action, 150); } }, 400);
+            };
+            element.addEventListener('mousedown', onStart); element.addEventListener('touchstart', onStart, { passive: true });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- NEU: Logik zur Filial-Erkennung ---
+            const branchStorageKey = 'filial-id';
+            let currentBranchID = localStorage.getItem(branchStorageKey);
+
+            // --- START: Migration alter Filialnamen ---
+            if (currentBranchID === 'OKS') {
+                currentBranchID = 'NBS11';
+                localStorage.setItem(branchStorageKey, currentBranchID);
+            } else if (currentBranchID === 'NBS') {
+                currentBranchID = 'NBS10';
+                localStorage.setItem(branchStorageKey, currentBranchID);
+            }
+            // --- ENDE: Migration alter Filialnamen ---
+
+            const branchModal = document.getElementById('branchModal');
+            const setBranchNBS10Btn = document.getElementById('setBranchNBS10');
+            const setBranchNBS11Btn = document.getElementById('setBranchNBS11');
+
+            // Funktion zum Setzen und Speichern der Filiale
+            function setBranch(branch) {
+                localStorage.setItem(branchStorageKey, branch);
+                currentBranchID = branch;
+
+                // Modal ausblenden (einfaches Ausblenden, da es nur 1x passiert)
+                branchModal.style.opacity = '0';
+                setTimeout(() => branchModal.style.display = 'none', 300);
+            }
+
+            // Event Listener für die neuen Buttons
+            setBranchNBS10Btn.addEventListener('click', () => setBranch('NBS10'));
+            setBranchNBS11Btn.addEventListener('click', () => setBranch('NBS11'));
+
+            // Wenn noch keine Filial-ID gespeichert ist, Modal anzeigen
+            if (!currentBranchID) {
+                branchModal.style.opacity = '0';
+                branchModal.style.display = 'flex';
+                setTimeout(() => branchModal.style.opacity = '1', 10);
+            }
+            // --- ENDE: Logik zur Filial-Erkennung ---
+
+
+            const counterView = document.getElementById('moneyCounterView');
+            const tipView = document.getElementById('tipCalculatorView');
+            const showCounterBtn = document.getElementById('showCounterBtn');
+            const showTipBtn = document.getElementById('showTipBtn');
+            const mainElement = document.querySelector('main');
+
+            // --- Fullscreen Logic START ---
+            const fullscreenToggle = document.getElementById('fullscreen-toggle');
+            const enterFsIcon = document.getElementById('enter-fs-icon');
+            const exitFsIcon = document.getElementById('exit-fs-icon');
+
+            const updateFullscreenIcon = () => {
+                const isFullscreen = !!document.fullscreenElement;
+                enterFsIcon.style.display = isFullscreen ? 'none' : 'block';
+                exitFsIcon.style.display = isFullscreen ? 'block' : 'none';
+
+                // Setzt den Button-Zustand auf collapsed, wenn Vollbild aktiv ist
+                if (isFullscreen) {
+                    fullscreenToggle.classList.remove('is-expanded');
+                } else if (!fullscreenToggle.classList.contains('attention-flash')) {
+                    // Stellt den Zustand wieder auf collapsed, falls Fullscreen verlassen wird
+                    // und die Aufmerksamkeitsphase vorbei ist
+                    fullscreenToggle.classList.remove('is-expanded');
+                }
+            };
+
+            const toggleFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    // Start Fullscreen on the entire document
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.error('Fullscreen request failed:', err);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+
+                // Entfernt den Puls sofort nach dem Klick
+                fullscreenToggle.classList.remove('attention-flash');
+
+                // Stellt sicher, dass er beim Klicken einklappt
+                fullscreenToggle.classList.remove('is-expanded');
+            };
+
+            fullscreenToggle.addEventListener('click', toggleFullscreen);
+            document.addEventListener('fullscreenchange', updateFullscreenIcon);
+
+            // Aufmerksamkeit-Timer: Puls für 5 Sekunden & Collapse
+            fullscreenToggle.classList.add('attention-flash', 'is-expanded'); // Startet erweitert
+            setTimeout(() => {
+                fullscreenToggle.classList.remove('attention-flash');
+                // Führt das Einklappen nach 5 Sekunden durch, falls noch nicht geklickt
+                fullscreenToggle.classList.remove('is-expanded');
+            }, 5000);
+
+            updateFullscreenIcon(); // Initial state check
+            // --- Fullscreen Logic END ---
+
+
+            function stabilizeAndScale() {
+                // Skalierungs-Logik wurde beibehalten (nicht-standardisiert), um die Anforderung zu erfüllen.
+                mainElement.style.minHeight = 'auto';
+                const counterHeight = counterView.offsetHeight;
+                const tipHeight = tipView.offsetHeight;
+                mainElement.style.minHeight = Math.max(counterHeight, tipHeight) + 'px';
+                const appContainer = document.querySelector('.app-container');
+                if (!appContainer) return;
+                appContainer.style.zoom = 1;
+                const naturalHeight = appContainer.offsetHeight;
+                const bodyPadding = 80; // 40px oben + 24px unten + etwas Puffer
+                const availableHeight = window.innerHeight - bodyPadding;
+                if (naturalHeight > availableHeight && window.innerWidth < 1200) {
+                    const scaleFactor = availableHeight / naturalHeight;
+                    appContainer.style.zoom = scaleFactor;
+                }
+            }
+
+            function switchView(view) {
+                const isCounter = view === 'counter';
+                counterView.classList.toggle('active', isCounter);
+                tipView.classList.toggle('active', !isCounter);
+                showCounterBtn.classList.toggle('active', isCounter);
+                showTipBtn.classList.toggle('active', !isCounter);
+                setTimeout(stabilizeAndScale, 50);
+            }
+
+            showCounterBtn.addEventListener('click', () => switchView('counter'));
+            showTipBtn.addEventListener('click', () => switchView('tip'));
+
+            const themeToggle = document.getElementById('theme-toggle');
+            const body = document.body;
+            const applyTheme = (theme) => body.classList.toggle('dark-mode', theme === 'dark');
+            themeToggle.addEventListener('click', () => {
+                const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(savedTheme);
+
+            // --- Modal- und Mailto-Logik (ANGEPASST) ---
+            const locationModal = document.getElementById('locationModal');
+            const saveCounterBtn = document.getElementById('saveCounter'); // Button ist wieder aktiv
+            const closeModalBtn = document.getElementById('closeModal');
+            const modalGrid = document.querySelector('.modal-grid');
+
+            const openModal = () => {
+                // NEU: Prüfen, ob Filiale gesetzt ist, bevor Mail-Modal öffnet
+                if (!localStorage.getItem(branchStorageKey)) {
+                    // Falls Filiale fehlt, Einstellungs-Modal anzeigen
+                    branchModal.style.opacity = '0';
+                    branchModal.style.display = 'flex';
+                    setTimeout(() => branchModal.style.opacity = '1', 10);
+                    return; // Verhindert das Öffnen des Mitarbeiter-Modals
+                }
+
+                // Normales Mitarbeiter-Modal öffnen
+                locationModal.style.opacity = '0';
+                locationModal.style.display = 'flex';
+                setTimeout(() => locationModal.style.opacity = '1', 10); // Fade in
+            };
+            const closeModal = () => {
+                locationModal.style.opacity = '0';
+                setTimeout(() => locationModal.style.display = 'none', 300); // Wartet auf CSS-Transition
+            };
+
+            // Modal-Steuerung
+            if (saveCounterBtn) {
+                saveCounterBtn.addEventListener('click', openModal);
+            }
+            closeModalBtn.addEventListener('click', closeModal);
+            locationModal.addEventListener('click', (e) => {
+                if (e.target === locationModal) { // Schließt nur bei Klick auf den Hintergrund
+                    closeModal();
+                }
+            });
+
+            // Mailto-Funktion (ANGEPASST)
+            function generateMailto(mitarbeiter) {
+                // 1. Datum holen und formatieren (DD.MM.YYYY)
+                const now = new Date();
+                const dateString = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()}`;
+
+                // 2. E-Mail und Betreff festlegen (ANGEPASST)
+                const email = 'abrechnung@rupprecht-gillet.de'; // <<< BITTE HIER ANPASSEN
+
+                // HIER HOLEN WIR DIE GESPEICHERTE FILIAL-ID
+                const branchID = localStorage.getItem(branchStorageKey) || 'FEHLER'; // Fallback
+
+                const subject = `Abrechnung ${branchID} ${dateString} - ${mitarbeiter}`; // <-- Dynamischer Betreff
+
+                // 3. E-Mail-Text (Body) aus Zählerwerten zusammenbauen
+                let bodyLines = [
+                    `Abrechnung von: ${mitarbeiter}`,
+                    `Filiale: ${branchID}`, // Filiale auch im Body hinzugefügt
+                    `Datum: ${dateString}`,
+                    `--- Zählerstand ---`
+                ];
+
+                // Greift auf das Datenmodell und das gerenderte Grid von MoneyCounter zu
+                [...MoneyCounter.bills, ...MoneyCounter.coins].forEach(item => {
+                    const input = MoneyCounter.gridEl.querySelector('#' + CSS.escape(item.id));
+                    const count = parseInt(input.value || "0");
+                    bodyLines.push(`${item.label}: ${count}`);
+                });
+
+                // --- NEU: NBS10 Wechselgeld Logik ---
+
+                // Holen und Parsen des numerischen Gesamtwerts in Cents
+                const totalString = document.getElementById('total').textContent; // z.B. "150,50 €"
+                // Wir verwenden TipCalculator.parseCents, da es Kommas (,) korrekt behandelt, müssen aber "€" entfernen
+                const totalCents = TipCalculator.parseCents(totalString.replace(' €', ''));
+
+                let finalTotalCents = totalCents; // Startwert
+
+                // Prüfen, ob NBS10
+                if (branchID === 'NBS10') {
+                    // Aktion 1: Zeile "Wechselgeld" HINZUFÜGEN (vor der Summe)
+                    bodyLines.push('Wechselgeld: 50,00 €');
+
+                    // Aktion 2: 50€ (5000 Cents) zum numerischen Gesamtwert ADDIEREN
+                    finalTotalCents += 5000;
+                }
+                // --- Ende NBS10 Logik ---
+
+
+                // Gesamtsumme hinzufügen (jetzt mit dem finalen, evtl. angepassten Wert)
+                // Wir verwenden MoneyCounter.formatEuro, das einen Euro-Wert (keine Cents) erwartet.
+                const finalTotalString = MoneyCounter.formatEuro(finalTotalCents / 100);
+
+                bodyLines.push('---');
+                bodyLines.push(`Gesamt: ${finalTotalString}`); // Den neuen, formatierten String verwenden
+
+                // 4. Mailto-Link erstellen und kodieren
+                // \r\n ist der Standard-Zeilenumbruch für Plain-Text-E-Mails
+                const body = bodyLines.join('\r\n');
+                const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                // 5. E-Mail-Client öffnen
+                window.location.href = mailtoLink;
+
+                // 6. Modal schließen
+                closeModal();
+            }
+
+            // Event-Listener für das Grid (Event Delegation)
+            modalGrid.addEventListener('click', (e) => {
+                if (e.target.classList.contains('grid-btn')) {
+                    const mitarbeiter = e.target.textContent;
+                    generateMailto(mitarbeiter);
+                }
+            });
+            // --- ENDE Modal-Logik ---
+
+
+            MoneyCounter.init();
+            TipCalculator.init();
+
+            stabilizeAndScale();
+            window.addEventListener('resize', stabilizeAndScale);
+        });
+
+        const MoneyCounter = {
+            storageKey: 'moneyCounterState', // Für sessionStorage
+            bills: [ { id: "100", value: 100, label: "100 €" }, { id: "50", value: 50, label: "50 €" }, { id: "20", value: 20, label: "20 €" }, { id: "10", value: 10, label: "10 €" }, { id: "5", value: 5, label: "5 €" } ],
+            coins: [ { id: "2", value: 2, label: "2 €" }, { id: "1", value: 1, label: "1 €" }, { id: "0.5", value: 0.5, label: "0,50 €" }, { id: "0.2", value: 0.2, label: "0,20 €" }, { id: "0.1", value: 0.1, label: "0,10 €" } ],
+            container: document.getElementById('moneyCounterView'),
+            gridEl: null,
+            init: function() {
+                this.gridEl = this.container.querySelector('.grid');
+                this.renderGrid();
+                this.container.querySelector('#resetCounter').addEventListener('click', () => this.resetAll());
+
+                // Gespeicherten Status laden und Summe aktualisieren
+                this.loadState();
+                this.update();
+            },
+            renderGrid: function() {
+
+                // inputmode="numeric" und type="text" hinzugefügt, um native Pfeile zu vermeiden.
+                const createColumnHTML = (items) => items.reduce((html, item) => html + `
+                    <div class="box">
+                        <div class="item-label-clickable" data-id="${item.id}">
+                            <span>${item.label}</span>
+                        </div>
+                        <div class="item-sum-display">
+                            <small class="item-sum" data-sum-id="${item.id}">= 0,00 €</small>
+                        </div>
+                        <div class="controls-group">
+                            <button class="control-btn-small" data-action="minus" data-id="${item.id}">-1</button>
+                            <input id="${item.id}" type="text" min="0" placeholder="0" inputmode="numeric">
+                            <button class="control-btn-small" data-action="plus" data-id="${item.id}">+1</button>
+                            <button class="control-btn-small" data-action="plus5" data-id="${item.id}">+5</button>
+                            <button class="control-btn-wide" data-action="plus10" data-id="${item.id}">+10</button>
+                        </div>
+                    </div>`, '');
+
+                this.gridEl.innerHTML = `<div class="grid-container"><div class="column">${createColumnHTML(this.bills)}</div><div class="vertical-separator"></div><div class="column">${createColumnHTML(this.coins)}</div></div>`;
+
+                this.gridEl.querySelectorAll('.item-label-clickable').forEach(el => createHoldableButton(el, () => this.change(el.dataset.id, 1)));
+
+                this.gridEl.querySelectorAll('.controls-group button').forEach(button => {
+                    const action = button.dataset.action;
+                    const id = button.dataset.id;
+                    let delta = 1;
+
+                    if (action === 'minus') delta = -1;
+                    else if (action === 'plus5') delta = 5;
+                    else if (action === 'plus10') delta = 10;
+
+                    if (action === 'minus' || action === 'plus') {
+                        createHoldableButton(button, () => this.change(id, delta));
+                    } else {
+                        button.addEventListener('click', () => this.change(id, delta));
+                    }
+                });
+
+                this.gridEl.querySelectorAll('input').forEach(input => input.addEventListener("input", () => this.update()));
+            },
+
+            // Lädt aus sessionStorage
+            loadState: function() {
+                const savedState = sessionStorage.getItem(this.storageKey);
+                if (!savedState) return;
+
+                try {
+                    const state = JSON.parse(savedState);
+                    Object.keys(state).forEach(id => {
+                        const input = this.gridEl.querySelector('#' + CSS.escape(id));
+                        if (input && state[id] > 0) {
+                            input.value = state[id];
+                        }
+                    });
+                } catch (e) {
+                    console.error("Fehler beim Laden des Zählerstands:", e);
+                    sessionStorage.removeItem(this.storageKey); // Beschädigte Daten entfernen
+                }
+            },
+
+            change: function(id, delta) {
+                const input = this.gridEl.querySelector('#' + CSS.escape(id));
+                let val = parseInt(input.value || "0") + delta;
+                input.value = Math.max(0, val);
+                this.update();
+            },
+
+            // Speichert in sessionStorage
+            update: function() {
+                let total = 0;
+                let stateToSave = {};
+
+                [...this.bills, ...this.coins].forEach(item => {
+                    // KORREKTUR: Hier stand fälschlicherweise 'id' statt 'item.id'
+                    const input = this.gridEl.querySelector('#' + CSS.escape(item.id));
+                    const sumDisplay = this.gridEl.querySelector(`small[data-sum-id="${item.id}"]`);
+
+                    let count = parseInt(input.value || "0");
+                    if (count < 0) count = 0;
+                    input.value = count > 0 ? count : "";
+
+                    if (count > 0) {
+                        stateToSave[item.id] = count;
+                    }
+
+                    const sum = count * item.value;
+
+                    if(sumDisplay) {
+                        sumDisplay.textContent = "= " + this.formatEuro(sum);
+                    }
+                    total += sum;
+                });
+                this.container.querySelector("#total").textContent = this.formatEuro(total);
+
+                if (Object.keys(stateToSave).length > 0) {
+                    sessionStorage.setItem(this.storageKey, JSON.stringify(stateToSave));
+                } else {
+                    sessionStorage.removeItem(this.storageKey);
+                }
+            },
+
+            // Leert sessionStorage
+            resetAll: function() {
+                this.gridEl.querySelectorAll('input').forEach(input => input.value = "");
+                sessionStorage.removeItem(this.storageKey);
+                this.update();
+            },
+            formatEuro: (amountInEuro) => amountInEuro.toFixed(2).replace('.', ',') + ' €'
+        };
+
+        const TipCalculator = {
+            persons: [], minCoinCents: 10, remainder: 0,
+            container: document.getElementById('tipCalculatorView'),
+            personsEl: null, amountEl: null, resultsEl: null,
+            init: function() {
+                this.personsEl = this.container.querySelector('#persons');
+                this.amountEl = this.container.querySelector('#amount');
+                this.resultsEl = this.container.querySelector('#results');
+                this.amountEl.oninput = () => this.calc();
+                this.amountEl.onblur = () => {
+                    const value = this.amountEl.value.replace(',','.');
+                    if(value) this.amountEl.value = (parseFloat(value) || 0).toFixed(2).replace('.',',');
+                };
+                // HIER: Sicherstellen, dass nach dem Reset wieder eine Person hinzugefügt wird
+                this.container.querySelector('#resetAll').onclick = () => {
+                    this.persons = [];
+                    this.amountEl.value = "";
+                    this.addPerson(); // Fügt Person 1 hinzu
+                    // calc() wird in addPerson() aufgerufen, daher ist es hier nicht notwendig
+                };
+                this.container.querySelectorAll('.amount-controls button').forEach(btn => createHoldableButton(btn, () => this.adjustAmount(parseFloat(btn.dataset.delta))));
+                this.addPerson();
+                this.updateAmountButtonsState();
+            },
+            updateAmountButtonsState: function() {
+                const current = parseFloat(this.amountEl.value.replace(',', '.')) || 0;
+                this.container.querySelectorAll('.amount-controls button[data-delta^="-"]').forEach(btn => btn.disabled = current <= 0);
+            },
+            adjustAmount: function(delta) {
+                // Konvertiert zu Cents, addiert, und dann zurück zu Euro-String
+                let currentCents = this.parseCents(this.amountEl.value);
+                // Delta ist bereits in Euro (z.B. 0.1), muss zu Cents konvertiert werden
+                const deltaCents = Math.round(delta * 100);
+                let resultCents = Math.max(0, currentCents + deltaCents);
+
+                this.amountEl.value = resultCents > 0 ? (resultCents / 100).toFixed(2).replace('.',',') : "";
+                this.calc();
+            },
+            parseCents: (euroString) => Math.round(parseFloat(euroString.replace(',','.')) * 100) || 0,
+
+            addPerson: function() {
+                const id = (this.persons[this.persons.length-1]?.id || 0) + 1;
+                this.persons.push({ id, name: `Person ${this.persons.length + 1}`, units: 1, share: 0, extraTenths: 0 });
+                this.renderPersons(id); // Vollen Neuaufbau bei strukturellen Änderungen
+                this.calc();
+            },
+            changeUnits: function(id, delta) {
+                const p = this.persons.find(x => x.id === id);
+                if (!p) return;
+                if (this.persons.length === 1 && p.units === 1 && delta < 0) return;
+                p.units = Math.max(0, p.units + delta);
+
+                let structuralChange = false;
+                if (p.units === 0) {
+                    this.persons = this.persons.filter(pp => pp.id !== id);
+                    this.persons.forEach((p, i) => p.name = `Person ${i + 1}`);
+                    structuralChange = true;
+                }
+
+                if (structuralChange) {
+                    this.renderPersons(); // Vollen Neuaufbau bei Löschung
+                }
+                this.calc();
+            },
+            giveExtra: function(id) {
+                const p = this.persons.find(x => x.id === id);
+                if (!p || this.remainder < this.minCoinCents) return;
+                p.share += this.minCoinCents;
+                p.extraTenths += 1;
+                this.remainder -= this.minCoinCents;
+                this.updatePersonDisplay(); // Leichteres Update
+                this.updateResults();
+            },
+            takeExtra: function(id) {
+                const p = this.persons.find(x => x.id === id);
+                if (!p || p.extraTenths <= 0) return;
+                p.share -= this.minCoinCents;
+                p.extraTenths -= 1;
+                this.remainder += this.minCoinCents;
+                this.updatePersonDisplay(); // Leichteres Update
+                this.updateResults();
+            },
+
+            // NEU: Nur Update der Werte in den vorhandenen DOM-Elementen (High Performance)
+            updatePersonDisplay: function() {
+                const isOnlyOnePerson = this.persons.length === 1;
+
+                this.persons.forEach(p => {
+                    const cardEl = this.personsEl.querySelector(`.person[data-id="${p.id}"]`);
+                    if (!cardEl) return; // Sollte nur passieren, wenn renderPersons noch nicht gelaufen ist
+
+                    // Update Klassen und Mengen
+                    cardEl.classList.toggle('extra', p.extraTenths > 0);
+                    cardEl.querySelector('.units').textContent = `${p.units}x`;
+                    cardEl.querySelector('.share-display').textContent = this.formatEuro(p.share || 0);
+
+                    // Update Extra Text
+                    const extraTextElement = cardEl.querySelector('.extra-amount-text');
+                    if (p.extraTenths > 0) {
+                        if (extraTextElement) {
+                            extraTextElement.textContent = `+${this.formatEuro(p.extraTenths * 10)}`;
+                        }
+                    } else if (extraTextElement) {
+                         // Workaround für verschachteltes HTML: Text leeren
+                         extraTextElement.textContent = '';
+                    }
+
+                    // Update Button States
+                    const minusBtn = cardEl.querySelector('button[data-action="unit-minus"]');
+                    const extraMinusBtn = cardEl.querySelector('button[data-action="extra-minus"]');
+                    const extraPlusBtn = cardEl.querySelector('button[data-action="extra-plus"]');
+
+                    if (minusBtn) minusBtn.disabled = (isOnlyOnePerson && p.units === 1);
+                    if (extraMinusBtn) extraMinusBtn.classList.toggle('visible', p.extraTenths > 0);
+                    if (extraPlusBtn) extraPlusBtn.disabled = this.remainder < this.minCoinCents;
+                });
+            },
+
+            // BEIBEHALTEN: Vollständiges Rendern (nur bei strukturellen Änderungen)
+            renderPersons: function(newPersonId = null) {
+                this.personsEl.innerHTML = '';
+                const minusIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" /></svg>';
+                const plusIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" /></svg>';
+                const isOnlyOnePerson = this.persons.length === 1;
+
+                this.persons.forEach(p => {
+                    const personCard = document.createElement('div');
+                    if (newPersonId === p.id) personCard.classList.add('fade-in');
+                    // data-id zur Identifizierung für updatePersonDisplay hinzugefügt
+                    personCard.className = 'person' + (p.extraTenths > 0 ? ' extra' : '');
+                    personCard.setAttribute('data-id', p.id);
+
+                    const extraText = p.extraTenths > 0 ? `<small class="extra-amount-text">+${this.formatEuro(p.extraTenths * 10)}</small>` : '<small class="extra-amount-text"></small>'; // Leeres small-Tag für Updates
+
+                    // ACHTUNG: Der extraText ist jetzt im share-container eingebettet, damit updatePersonDisplay ihn findet
+                    personCard.innerHTML = `
+                        <div class="name">${p.name}</div>
+                        <div class="count">
+                            <button data-action="unit-minus" data-id="${p.id}" ${isOnlyOnePerson && p.units === 1 ? 'disabled' : ''}>${minusIcon}</button>
+                            <span class="units">${p.units}x</span>
+                            <button data-action="unit-plus" data-id="${p.id}">${plusIcon}</button>
+                        </div>
+                        <div class="share-container">
+                             <span class="share-display">${this.formatEuro(p.share || 0)}</span>
+                             ${extraText}
+                        </div>
+                        <div class="separator"></div>
+                        <div class="extra-controls">
+                            <button class="minus ${p.extraTenths > 0 ? 'visible' : ''}" data-action="extra-minus" data-id="${p.id}">-0,10€</button>
+                            <button class="plus" data-action="extra-plus" data-id="${p.id}" ${this.remainder < 10 ? 'disabled' : ''}>+0,10€</button>
+                        </div>`;
+                    this.personsEl.appendChild(personCard);
+                });
+                const addRow = document.createElement('div');
+                addRow.className = 'add-person'; addRow.textContent = '+';
+                addRow.onclick = () => this.addPerson(); this.personsEl.appendChild(addRow);
+
+                // Event Listener für neue Elemente neu setzen
+                this.personsEl.querySelectorAll('button[data-action]').forEach(btn => {
+                    const action = btn.dataset.action, id = Number(btn.dataset.id);
+                    if (action.startsWith('unit-')) createHoldableButton(btn, () => this.changeUnits(id, action.endsWith('plus') ? 1 : -1));
+                    else if (action === 'extra-plus') btn.onclick = () => this.giveExtra(id);
+                    else if (action === 'extra-minus') btn.onclick = () => this.takeExtra(id);
+                });
+            },
+            formatEuro: (cents) => (cents / 100).toFixed(2).replace('.', ',') + ' €',
+
+            // NEU: Hauptberechnungslogik, die nur noch Integer verwendet
+            calc: function() {
+                this.updateAmountButtonsState();
+
+                // Eingabe in Cents konvertieren (Integer-Basis)
+                const totalCents = this.parseCents(this.amountEl.value);
+                const totalUnits = this.persons.reduce((s, p) => s + p.units, 0);
+
+                if (totalUnits === 0) {
+                    this.persons.forEach(p => p.share = 0);
+                    this.remainder = totalCents;
+                }
+                else {
+                    // Berechnung des Basisbetrags pro Einheit, auf 10 Cents abgerundet
+                    // Da alles Integer ist, sind die Berechnungen akkurat.
+                    const centsPerUnit = totalCents / totalUnits;
+                    const perHourFloored = Math.floor(centsPerUnit / this.minCoinCents) * this.minCoinCents;
+
+                    this.persons.forEach(p => p.share = p.units * perHourFloored);
+                    this.persons.forEach(p => p.extraTenths = 0);
+
+                    // Restbetrag in Cents berechnen
+                    const allocatedCents = this.persons.reduce((s, a) => s + a.share, 0);
+                    this.remainder = totalCents - allocatedCents;
+                }
+
+                this.updatePersonDisplay(); // High-Performance Update
+                this.updateResults();
+            },
+
+            updateResults: function() {
+                const sumAllocated = this.persons.reduce((s, a) => s + a.share, 0);
+                const totalUnits = this.persons.reduce((s, p) => s + p.units, 0);
+                const totalCents = this.parseCents(this.amountEl.value);
+                const perHourFloored = totalUnits > 0 ? Math.floor((totalCents / totalUnits) / this.minCoinCents) * this.minCoinCents : 0;
+
+                let remainderClass = '';
+                if (this.remainder > 0) remainderClass = 'is-positive';
+                else if (this.remainder === 0 && sumAllocated > 0) remainderClass = 'is-zero';
+
+                this.resultsEl.innerHTML = `
+                    <div class="result-item"><span class="label">Stunden gesamt</span><span class="value">${totalUnits}h</span></div>
+                    <div class="result-item"><span class="label">€ pro Stunde</span><span class="value">${this.formatEuro(perHourFloored)}</span></div>
+                    <div class="result-item"><span class="label">Summe verteilt</span><strong class="value">${this.formatEuro(sumAllocated)}</strong></div>
+                    <div class="result-item rest-item"><span class="label">Rest</span><strong class="value ${remainderClass}">${this.formatEuro(this.remainder)}</strong></div>`;
+            }
+        };
+    </script>
+</body>
+</html>
+
+
